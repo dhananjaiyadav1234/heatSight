@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Navigation, MapPin, Clock, Thermometer, Route, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import mapboxgl from "mapbox-gl";
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Mock route data
 const mockRoutes = {
@@ -33,10 +35,13 @@ const mockRoutes = {
 const RouteAdvisor = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [selectedRoute, setSelectedRoute] = useState<"default" | "alternative">("alternative");
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
 
-  const handlePlanRoute = () => {
+  const handlePlanRoute = async () => {
     if (!from || !to) {
       toast({
         title: "Missing information",
@@ -45,12 +50,73 @@ const RouteAdvisor = () => {
       });
       return;
     }
+    try {
+      const res = await fetch(`/api/routes/heat-safe-navigation?startName=${encodeURIComponent(from)}&endName=${encodeURIComponent(to)}`);
+      if (!res.ok) throw new Error("Failed to fetch route");
+      const data = await res.json();
+      setRoutes(data.routes || []);
+      setSelectedRouteIdx(0);
     setShowResults(true);
     toast({
       title: "Route calculated",
       description: "Showing heat-optimized routes",
     });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: (err as Error).message,
+        variant: "destructive",
+      });
+    }
   };
+
+  // Draw route on the map
+  useEffect(() => {
+    if (!mapRef.current && mapContainer.current) {
+      mapRef.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: [77.5946, 12.9716], // Default to Bangalore
+        zoom: 12,
+      });
+    }
+
+    if (mapRef.current && routes[selectedRouteIdx]) {
+      const map = mapRef.current;
+      function addRouteLayer() {
+        // Remove previous route layer/source if exists
+        if (map.getLayer('route')) {
+          map.removeLayer('route');
+        }
+        if (map.getSource('route')) {
+          map.removeSource('route');
+        }
+        map.flyTo({
+          center: routes[selectedRouteIdx].geometry.coordinates[0],
+          zoom: 12,
+        });
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: routes[selectedRouteIdx].geometry,
+          },
+        });
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: { 'line-color': '#ff6600', 'line-width': 6 },
+        });
+      }
+      if (!map.isStyleLoaded()) {
+        map.once('style.load', addRouteLayer);
+      } else {
+        addRouteLayer();
+      }
+    }
+  }, [routes, selectedRouteIdx]);
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
@@ -111,130 +177,69 @@ const RouteAdvisor = () => {
       </Card>
 
       {/* Route Results */}
-      {showResults && (
+      {showResults && routes.length > 0 && (
         <div className="space-y-4">
           {/* Route Options */}
           <div className="grid gap-4 md:grid-cols-2">
-            {/* Default Route */}
+            {routes.map((route, idx) => (
             <Card 
+                key={idx}
               className={`cursor-pointer transition-all duration-300 ${
-                selectedRoute === "default" ? "ring-2 ring-primary shadow-heat" : "hover:shadow-card"
+                  selectedRouteIdx === idx ? "ring-2 ring-primary shadow-heat" : "hover:shadow-card"
               }`}
-              onClick={() => setSelectedRoute("default")}
+                onClick={() => setSelectedRouteIdx(idx)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Fastest Route</CardTitle>
-                  <Badge variant={getRiskColor(mockRoutes.default.heatRisk) as any}>
-                    {mockRoutes.default.heatRisk.toUpperCase()} HEAT
-                  </Badge>
+                    <CardTitle className="text-lg">Route {idx + 1}</CardTitle>
+                    <Badge variant="mild">Route</Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-4 text-sm">
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4" />
-                    {mockRoutes.default.duration}
-                  </div>
-                  <div>{mockRoutes.default.distance}</div>
-                </div>
-                <div className="space-y-2">
-                  {mockRoutes.default.segments.map((segment, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <span>{segment.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getRiskColor(segment.risk) as any}>
-                          {segment.temp}°C
-                        </Badge>
-                      </div>
+                      {Math.round(route.duration / 60)} mins
                     </div>
-                  ))}
-                </div>
+                    <div>{(route.distance / 1000).toFixed(1)} km</div>
+                  </div>
+                  {/* You can add more details here, e.g., steps, risk, etc. */}
               </CardContent>
             </Card>
-
-            {/* Alternative Route */}
-            <Card 
-              className={`cursor-pointer transition-all duration-300 ${
-                selectedRoute === "alternative" ? "ring-2 ring-cool-primary shadow-cool" : "hover:shadow-card"
-              }`}
-              onClick={() => setSelectedRoute("alternative")}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Heat-Safe Route</CardTitle>
-                  <Badge variant={getRiskColor(mockRoutes.alternative.heatRisk) as any}>
-                    {mockRoutes.alternative.heatRisk.toUpperCase()} HEAT
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    {mockRoutes.alternative.duration}
-                  </div>
-                  <div>{mockRoutes.alternative.distance}</div>
-                </div>
-                <div className="space-y-2">
-                  {mockRoutes.alternative.segments.map((segment, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <span>{segment.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={getRiskColor(segment.risk) as any}>
-                          {segment.temp}°C
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            ))}
           </div>
 
           {/* Route Visualization */}
           <Card className="shadow-heat">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {(() => {
-                  const Icon = getRouteIcon(mockRoutes[selectedRoute].heatRisk);
-                  return <Icon className="h-5 w-5 text-primary" />;
-                })()}
+                <Route className="h-5 w-5 text-primary" />
                 Route Visualization
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-48 bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg relative overflow-hidden">
-                {/* Mock route visualization */}
-                <div className="absolute inset-4 flex items-center">
-                  <div className="flex-1 h-2 bg-gradient-to-r from-heat-safe via-heat-mild to-heat-safe rounded-full relative">
-                    {/* Route markers */}
-                    <div className="absolute -top-1 left-0 w-4 h-4 bg-primary rounded-full border-2 border-white"></div>
-                    <div className="absolute -top-1 right-0 w-4 h-4 bg-primary rounded-full border-2 border-white"></div>
-                    
-                    {/* Route segments visualization */}
-                    {selectedRoute === "default" && (
-                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-                        <Badge variant="extreme">Extreme Heat Zone</Badge>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Legend */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-background/90 backdrop-blur-sm rounded-lg p-3 text-center">
-                    <div className="text-sm font-medium mb-2">
-                      {selectedRoute === "default" ? "Fastest but risky route" : "Longer but heat-safe route"}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Selected route avoids high-heat zones for safer transport
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <div ref={mapContainer} style={{ width: "100%", height: "300px" }} />
             </CardContent>
           </Card>
+
+          {/* Turn-by-Turn Directions */}
+          {routes[selectedRouteIdx]?.legs && (
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Navigation className="h-5 w-5 text-primary" />
+                  Turn-by-Turn Directions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="list-decimal pl-6 space-y-1">
+                  {routes[selectedRouteIdx].legs[0].steps.map((step: any, idx: number) => (
+                    <li key={idx}>{step.maneuver.instruction}</li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Route Summary */}
           <Card className="bg-gradient-hero border-primary/20">
@@ -246,10 +251,9 @@ const RouteAdvisor = () => {
                 <div>
                   <div className="font-medium text-sm mb-1">Route Recommendation</div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedRoute === "alternative" 
-                      ? "✅ Recommended: This route adds 7 minutes but avoids extreme heat zones, reducing health risks for drivers and passengers."
-                      : "⚠️ Caution: Fastest route includes extreme heat zones. Consider the safer alternative for sensitive passengers or long stops."
-                    }
+                    {routes.length > 0
+                      ? `Recommended: Route ${selectedRouteIdx + 1} is the best available based on current data.`
+                      : "No routes found."}
                   </div>
                 </div>
               </div>

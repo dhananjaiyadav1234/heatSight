@@ -42,6 +42,35 @@ const HeatMapComponent = () => {
     peakAQI: number;
     heatAlerts: number;
   }>(null);
+  const [userArea, setUserArea] = useState<string | null>(null);
+  const [userRisk, setUserRisk] = useState<string | null>(null);
+  const [aiAdvice, setAiAdvice] = useState<string>("");
+  const [loadingAdvice, setLoadingAdvice] = useState<boolean>(false);
+  // Example state for weather, location, and profession
+  const [weatherData, setWeatherData] = useState<any>(null); // Replace with your actual weather state
+  const [userLocationString, setUserLocationString] = useState<string>(""); // Replace with your actual location state
+  const [profession, setProfession] = useState<string>("worker"); // Replace with your actual profession state or user input
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function reverseGeocode(lat: number, lng: number): Promise<string> {
+    const token = import.meta.env.VITE_MAPBOX_TOKEN;
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.features && data.features.length > 0) {
+      return data.features[0].place_name;
+    }
+    return `Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`;
+  }
+
+  // Risk level logic (used for API call)
+  function getRiskLevel(temp: number): "extreme" | "high" | "mild" | "safe" {
+    if (temp >= 42) return "extreme";
+    if (temp >= 35) return "high";
+    if (temp >= 29) return "mild";
+    return "safe";
+  }
 
   useEffect(() => {
     if (mapRef.current || !mapContainer.current) return;
@@ -90,6 +119,56 @@ const HeatMapComponent = () => {
     }
   }, [userLocation]);
 
+  // Fetch AI advice when weather or location changes
+  useEffect(() => {
+    console.log("[AI Advice Effect] weatherData:", weatherData);
+    console.log("[AI Advice Effect] userLocationString:", userLocationString);
+    if (!weatherData || !userLocationString) return;
+
+    const temp = weatherData.peakTemp ?? weatherData.temp;
+    const humidity = weatherData.avgHumidity ?? weatherData.humidity;
+    const risk = getRiskLevel(temp);
+
+    setLoadingAdvice(true);
+    setAiAdvice("");
+
+    console.log("Calling AI advice with:", { userLocationString, temp, humidity, risk });
+
+    fetch("/api/ai-advice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: userLocationString,
+        temp,
+        humidity,
+        risk,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("AI advice response:", data);
+        if (data.advice) {
+          setAiAdvice(data.advice);
+        } else if (data.error) {
+          setAiAdvice("AI advice unavailable: " + data.error);
+        } else {
+          setAiAdvice("AI advice unavailable.");
+        }
+      })
+      .catch((err) => {
+        console.error("AI advice fetch error:", err);
+        setAiAdvice("Could not fetch AI advice. Please try again.");
+      })
+      .finally(() => {
+        setLoadingAdvice(false);
+      });
+  }, [weatherData, userLocationString]);
+
+  // Debug log in render
+  console.log("[Render] aiAdvice:", aiAdvice);
+  console.log("[Render] weatherData:", weatherData);
+  console.log("[Render] userLocationString:", userLocationString);
+
   const getCurrentLocation = async () => {
     console.log("Clicked My Location");
     if (navigator.geolocation) {
@@ -99,26 +178,23 @@ const HeatMapComponent = () => {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           });
+          const area = await reverseGeocode(position.coords.latitude, position.coords.longitude);
+          setUserArea(area);
           toast({
             title: "Location found",
             description: "Heat map centered on your location",
           });
           try {
-            // First, fetch and store real weather data for this location
-            const weatherRes = await fetch('/api/weather/fetch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                lat: position.coords.latitude,
-                lon: position.coords.longitude,
-              }),
-            });
+            // Fetch real weather data for this location (GET instead of POST)
+            const weatherRes = await fetch(`/api/weather?lat=${position.coords.latitude}&lng=${position.coords.longitude}`);
             if (!weatherRes.ok) throw new Error('Weather fetch failed');
             const weatherData = await weatherRes.json();
             toast({
               title: "Weather Data Fetched",
               description: `Temp: ${weatherData.temp}°C, Humidity: ${weatherData.humidity}%`,
             });
+            setWeatherData(weatherData);
+            setUserLocationString(area);
 
             // Now fetch analytics for this location
             const analyticsRes = await fetch(`/api/routes/analytics?lat=${position.coords.latitude}&lng=${position.coords.longitude}`);
@@ -130,6 +206,7 @@ const HeatMapComponent = () => {
               peakAQI: data.peakAQI,
               heatAlerts: data.heatAlerts,
             });
+            setUserRisk(getRiskLevel(data.peakTemp));
             toast({
               title: "Your Location Analytics",
               description: (
@@ -205,12 +282,15 @@ const HeatMapComponent = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             {(() => {
-              const Icon = getRiskIcon(selectedZone.risk);
-              return <Icon className={`h-5 w-5 text-heat-${getRiskColor(selectedZone.risk)}`} />;
+              const risk = userAnalytics && userRisk ? userRisk : selectedZone.risk;
+              const Icon = getRiskIcon(risk);
+              return <Icon className={`h-5 w-5 text-heat-${getRiskColor(risk)}`} />;
             })()}
-            {selectedZone.name}
-            <Badge variant={getRiskColor(selectedZone.risk) as any}>
-              {selectedZone.risk.toUpperCase()}
+            {userAnalytics && userArea
+              ? userArea
+              : selectedZone.name}
+            <Badge variant={getRiskColor(userAnalytics && userRisk ? userRisk : selectedZone.risk) as any}>
+              {(userAnalytics && userRisk ? userRisk : selectedZone.risk).toUpperCase()}
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -250,7 +330,9 @@ const HeatMapComponent = () => {
                 <div>
                   <div className="font-medium text-sm mb-1">AI Risk Assessment</div>
                   <div className="text-sm text-muted-foreground">
-                    {getAISummary(selectedZone)}
+                    {loadingAdvice
+                      ? "Loading AI advice..."
+                      : aiAdvice || "AI advice unavailable."}
                   </div>
                 </div>
               </div>
