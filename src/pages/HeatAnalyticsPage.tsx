@@ -19,8 +19,8 @@ const getUVColor = (uv: number) => {
   return "bg-purple-700";
 };
 
-const getRiskColor = (risk: string) => {
-  switch (risk) {
+  const getRiskColor = (risk: string) => {
+    switch (risk) {
     case "safe": return "bg-green-500";
     case "mild": return "bg-yellow-400";
     case "high": return "bg-orange-500";
@@ -159,11 +159,11 @@ const HeatAnalyticsDashboard = () => {
       ) : weather ? (
         <>
           {/* Main Cards */}
-          <section className="py-8">
-            <div className="container mx-auto px-4">
+      <section className="py-8">
+        <div className="container mx-auto px-4">
               <div className="grid md:grid-cols-4 gap-6">
                 {/* Temperature Card */}
-                <Card className="text-center shadow-card">
+              <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center">
                     <Sun className="h-10 w-10 text-orange-400 mb-2" />
                     <div className="text-4xl font-bold text-orange-600">{weather.temp}°C</div>
@@ -173,12 +173,12 @@ const HeatAnalyticsDashboard = () => {
                     <div className="mt-2 flex items-center gap-2">
                       <Thermometer className="h-5 w-5 text-orange-500" />
                       <span className="font-semibold text-orange-500">{weather.temp > 35 ? "High" : weather.temp > 28 ? "Moderate" : "Low"}</span>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* Humidity & UV Card */}
-                <Card className="text-center shadow-card">
+              <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center gap-4">
                     {/* Humidity Gauge */}
                     <div className="flex flex-col items-center">
@@ -205,25 +205,25 @@ const HeatAnalyticsDashboard = () => {
                       <div className="text-xs text-yellow-500 font-semibold mt-1">UV Index</div>
                       <div className={`text-xs font-semibold mt-1 ${getUVColor(weather.uv || 0)} text-white rounded px-2`}>
                         {weather.uv < 3 ? "Low" : weather.uv < 6 ? "Moderate" : weather.uv < 8 ? "High" : weather.uv < 11 ? "Very High" : "Extreme"}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* AQI Card */}
-                <Card className="text-center shadow-card">
+              <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center">
                     <Wind className="h-8 w-8 mb-2 text-gray-500" />
                     <div className={`text-3xl font-bold ${getAQIColor(weather.aqi)} text-white rounded px-3 py-1`}>{weather.aqi}</div>
                     <div className="text-xs text-muted-foreground mt-1">Air Quality Index</div>
                     <div className="text-sm text-muted-foreground mt-2">
                       {weather.aqi <= 50 ? "Good" : weather.aqi <= 100 ? "Moderate" : weather.aqi <= 150 ? "Unhealthy" : weather.aqi <= 200 ? "Very Unhealthy" : "Hazardous"}
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
                 {/* Heat Risk Level Card */}
-                <Card className="text-center shadow-card">
+              <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center">
                     <AlertTriangle className="h-10 w-10 text-red-400 mb-2" />
                     <div className={`text-2xl font-bold ${getRiskColor(weather.risk?.level || 'safe')} text-white rounded px-3 py-1 mb-2`}>
@@ -232,7 +232,7 @@ const HeatAnalyticsDashboard = () => {
                     <div className="text-xs text-muted-foreground mb-2">Heat Risk Level</div>
                     <div className="text-sm text-muted-foreground text-center">
                       {weather.risk?.description || "Risk assessment unavailable"}
-                    </div>
+                  </div>
                     {weather.risk?.recommendations && (
                       <div className="mt-3 text-xs text-muted-foreground">
                         <div className="font-semibold mb-1">Recommendations:</div>
@@ -244,18 +244,18 @@ const HeatAnalyticsDashboard = () => {
                             </li>
                           ))}
                         </ul>
-                      </div>
+                  </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </section>
+                </CardContent>
+              </Card>
+          </div>
+        </div>
+      </section>
 
           {/* Enhanced Analytics Section */}
           {analytics && (
             <section className="py-8 bg-muted/30">
-              <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                   <BarChart3 className="h-6 w-6 text-primary" />
                   Enhanced Analytics
@@ -263,13 +263,13 @@ const HeatAnalyticsDashboard = () => {
                 <div className="grid md:grid-cols-3 gap-6">
                   {/* Temperature Trends */}
                   <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                         <Thermometer className="h-5 w-5" />
                         Temperature Trends
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Average:</span>
@@ -282,14 +282,14 @@ const HeatAnalyticsDashboard = () => {
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Min:</span>
                           <span className="font-semibold text-blue-600">{analytics.trends.temp.min.toFixed(1)}°C</span>
-                        </div>
+                    </div>
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Trend:</span>
                           <span className={`font-semibold flex items-center gap-1 ${analytics.trends.temp.trend > 0 ? 'text-red-600' : 'text-blue-600'}`}>
                             <TrendingUp className={`h-4 w-4 ${analytics.trends.temp.trend > 0 ? 'rotate-0' : 'rotate-180'}`} />
                             {Math.abs(analytics.trends.temp.trend).toFixed(1)}°C
                           </span>
-                        </div>
+                  </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -364,19 +364,19 @@ const HeatAnalyticsDashboard = () => {
                           <div className="flex justify-between">
                             <span className="text-sm text-muted-foreground">Poor AQI:</span>
                             <span className="font-semibold text-purple-600">{analytics.alerts.poorAQI} days</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </section>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
           )}
 
           {/* 7-Day Forecast */}
           <section className="py-8">
-            <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Calendar className="h-6 w-6 text-primary" />
                 7-Day Forecast
@@ -395,7 +395,7 @@ const HeatAnalyticsDashboard = () => {
                         </div>
                         <div className="text-xs text-muted-foreground mb-3">
                           {new Date(day.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </div>
+                      </div>
                         <div className="text-2xl font-bold text-orange-600 mb-1">{day.temp}°C</div>
                         <div className="text-xs text-muted-foreground mb-2">
                           {day.temp_min}°C - {day.temp_max}°C
@@ -403,21 +403,21 @@ const HeatAnalyticsDashboard = () => {
                         <div className="text-sm text-blue-500 mb-2">{day.humidity}%</div>
                         <div className={`text-xs font-semibold ${getRiskColor(day.risk?.level || 'safe')} text-white rounded px-2 py-1 mb-2`}>
                           {getRiskLabel(day.risk?.level || 'safe')}
-                        </div>
+                      </div>
                         <div className="text-xs text-muted-foreground">
                           UV: {day.uv?.toFixed(1) || '-'}
-                        </div>
+                    </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
               )}
-            </div>
-          </section>
+        </div>
+      </section>
 
           {/* Historical Trends */}
           <section className="py-8 bg-muted/30">
-            <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4">
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Activity className="h-6 w-6 text-primary" />
                 Historical Trends
@@ -425,10 +425,10 @@ const HeatAnalyticsDashboard = () => {
               <div className="grid md:grid-cols-2 gap-6">
                 {/* Temperature Trend Chart */}
                 <Card>
-                  <CardHeader>
+              <CardHeader>
                     <CardTitle>Temperature Trend (7 Days)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
+              </CardHeader>
+              <CardContent>
                     {trendTemp.length > 0 ? (
                       <div className="h-48 flex items-end justify-between gap-1">
                         {trendTemp.map((temp, index) => (
@@ -439,23 +439,23 @@ const HeatAnalyticsDashboard = () => {
                             />
                             <div className="text-xs text-muted-foreground mt-1">
                               {trendDays[index] || index + 1}
-                            </div>
-                          </div>
-                        ))}
                       </div>
+                    </div>
+                  ))}
+                </div>
                     ) : (
                       <div className="h-48 flex items-center justify-center text-muted-foreground">
                         No historical data available
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+              </CardContent>
+            </Card>
 
                 {/* Humidity Trend Chart */}
                 <Card>
-                  <CardHeader>
+              <CardHeader>
                     <CardTitle>Humidity Trend (7 Days)</CardTitle>
-                  </CardHeader>
+              </CardHeader>
                   <CardContent>
                     {trendHumidity.length > 0 ? (
                       <div className="h-48 flex items-end justify-between gap-1">
@@ -467,8 +467,8 @@ const HeatAnalyticsDashboard = () => {
                             />
                             <div className="text-xs text-muted-foreground mt-1">
                               {trendDays[index] || index + 1}
-                            </div>
-                          </div>
+                  </div>
+                </div>
                         ))}
                       </div>
                     ) : (
@@ -476,11 +476,11 @@ const HeatAnalyticsDashboard = () => {
                         No historical data available
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </section>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
         </>
       ) : null}
     </div>
