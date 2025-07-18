@@ -2,17 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>heatSight</title>
-    <meta name="description" content="" />
-    <meta name="author" content="" />
+    <meta name="description" content="AI-powered climate resilience platform helping workers and transport staff navigate extreme heat with real-time risk assessment and route optimization." />
+    <meta name="author" content="HeatSight Team" />
 
-    <meta property="og:title" content="heatSight" />
-    <meta property="og:description" content="" />
+    <!-- Mobile-specific meta tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="HeatSight" />
+    <meta name="application-name" content="HeatSight" />
+    <meta name="theme-color" content="#ff6b35" />
+    <meta name="msapplication-TileColor" content="#ff6b35" />
+    <meta name="msapplication-tap-highlight" content="no" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="HeatSight" />
+    <meta property="og:description" content="AI-powered climate resilience platform helping workers and transport staff navigate extreme heat with real-time risk assessment and route optimization." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="file:///Users/dhananjaiyadav/Desktop/favicon.ico" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://heatsight.app" />
 
-    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HeatSight" />
+    <meta name="twitter:description" content="AI-powered climate resilience platform for heat safety" />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://api.mapbox.com" />
+    <link rel="preconnect" href="https://api.openweathermap.org" />
+    <link rel="preconnect" href="https://api.togather.ai" />
   </head>
 
   <body>

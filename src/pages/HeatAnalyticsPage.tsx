@@ -1,6 +1,6 @@
 import Navigation from "@/components/Navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Thermometer, Droplets, Sun, Wind, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
+import { Thermometer, Droplets, Sun, Wind, MapPin, TrendingUp, AlertTriangle, Calendar, BarChart3, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 
 const getAQIColor = (aqi: number) => {
@@ -19,13 +19,23 @@ const getUVColor = (uv: number) => {
   return "bg-purple-700";
 };
 
-  const getRiskColor = (risk: string) => {
-    switch (risk) {
-    case "Low": return "bg-green-500";
-    case "Moderate": return "bg-yellow-400";
-    case "High": return "bg-orange-500";
-    case "Dangerous": return "bg-red-500";
+const getRiskColor = (risk: string) => {
+  switch (risk) {
+    case "safe": return "bg-green-500";
+    case "mild": return "bg-yellow-400";
+    case "high": return "bg-orange-500";
+    case "extreme": return "bg-red-500";
     default: return "bg-gray-400";
+  }
+};
+
+const getRiskLabel = (risk: string) => {
+  switch (risk) {
+    case "safe": return "Low Risk";
+    case "mild": return "Moderate Risk";
+    case "high": return "High Risk";
+    case "extreme": return "Extreme Risk";
+    default: return "Unknown";
   }
 };
 
@@ -45,6 +55,7 @@ const HeatAnalyticsDashboard = () => {
   const [location, setLocation] = useState<string>("Loading location...");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [weather, setWeather] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -79,17 +90,19 @@ const HeatAnalyticsDashboard = () => {
     }
   }, []);
 
-  // Fetch weather and history when coords are set
+  // Fetch weather, analytics, and history when coords are set
   useEffect(() => {
     if (!coords) return;
     setLoading(true);
     setError("");
     Promise.all([
       fetch(`/api/weather?lat=${coords.lat}&lng=${coords.lng}`).then(res => res.json()),
+      fetch(`/api/weather/analytics?lat=${coords.lat}&lng=${coords.lng}`).then(res => res.json()),
       fetch(`/api/weather/history?lat=${coords.lat}&lng=${coords.lng}&days=7`).then(res => res.json()),
     ])
-      .then(([weatherData, historyData]) => {
+      .then(([weatherData, analyticsData, historyData]) => {
         setWeather(weatherData);
+        setAnalytics(analyticsData);
         setHistory(Array.isArray(historyData) ? historyData : []);
         setLoading(false);
       })
@@ -146,11 +159,11 @@ const HeatAnalyticsDashboard = () => {
       ) : weather ? (
         <>
           {/* Main Cards */}
-      <section className="py-8">
-        <div className="container mx-auto px-4">
+          <section className="py-8">
+            <div className="container mx-auto px-4">
               <div className="grid md:grid-cols-4 gap-6">
                 {/* Temperature Card */}
-              <Card className="text-center shadow-card">
+                <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center">
                     <Sun className="h-10 w-10 text-orange-400 mb-2" />
                     <div className="text-4xl font-bold text-orange-600">{weather.temp}°C</div>
@@ -160,11 +173,12 @@ const HeatAnalyticsDashboard = () => {
                     <div className="mt-2 flex items-center gap-2">
                       <Thermometer className="h-5 w-5 text-orange-500" />
                       <span className="font-semibold text-orange-500">{weather.temp > 35 ? "High" : weather.temp > 28 ? "Moderate" : "Low"}</span>
-                  </div>
-                </CardContent>
-              </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Humidity & UV Card */}
-              <Card className="text-center shadow-card">
+                <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center gap-4">
                     {/* Humidity Gauge */}
                     <div className="flex flex-col items-center">
@@ -175,9 +189,9 @@ const HeatAnalyticsDashboard = () => {
                           <circle cx="32" cy="32" r="28" stroke="#38bdf8" strokeWidth="8" fill="none" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - weather.humidity / 100)} />
                         </svg>
                         <span className="text-xl font-bold text-blue-500">{weather.humidity}%</span>
-                  </div>
+                      </div>
                       <div className="text-xs text-blue-500 font-semibold mt-1">Humidity</div>
-                  </div>
+                    </div>
                     {/* UV Gauge */}
                     <div className="flex flex-col items-center">
                       <Sun className="h-7 w-7 text-yellow-400 mb-1" />
@@ -187,191 +201,286 @@ const HeatAnalyticsDashboard = () => {
                           <circle cx="32" cy="32" r="28" stroke="#facc15" strokeWidth="8" fill="none" strokeDasharray={2 * Math.PI * 28} strokeDashoffset={2 * Math.PI * 28 * (1 - (weather.uv || 0) / 12)} />
                         </svg>
                         <span className="text-xl font-bold text-yellow-500">{weather.uv ?? "-"}</span>
-                  </div>
+                      </div>
                       <div className="text-xs text-yellow-500 font-semibold mt-1">UV Index</div>
-                      <div className={`text-xs font-semibold mt-1 ${getUVColor(weather.uv || 0)} text-white rounded px-2`}>{weather.uv < 3 ? "Low" : weather.uv < 6 ? "Moderate" : weather.uv < 8 ? "High" : weather.uv < 11 ? "Very High" : "Extreme"}</div>
-                  </div>
-                </CardContent>
-              </Card>
+                      <div className={`text-xs font-semibold mt-1 ${getUVColor(weather.uv || 0)} text-white rounded px-2`}>
+                        {weather.uv < 3 ? "Low" : weather.uv < 6 ? "Moderate" : weather.uv < 8 ? "High" : weather.uv < 11 ? "Very High" : "Extreme"}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* AQI Card */}
-              <Card className="text-center shadow-card">
+                <Card className="text-center shadow-card">
                   <CardContent className="p-6 flex flex-col items-center">
                     <Wind className="h-8 w-8 mb-2 text-gray-500" />
                     <div className={`text-3xl font-bold ${getAQIColor(weather.aqi)} text-white rounded px-3 py-1`}>{weather.aqi}</div>
-                    <div className="text-xs text-muted-foreground mt-1">AQI</div>
-                    <div className="text-sm font-semibold mt-1">{weather.aqi <= 50 ? "Good" : weather.aqi <= 100 ? "Moderate" : weather.aqi <= 150 ? "Unhealthy" : weather.aqi <= 200 ? "Very Unhealthy" : "Hazardous"}</div>
-                    {/* 24h AQI line graph */}
-                    <svg width="100%" height="40" viewBox="0 0 120 40" className="mt-2">
-                      <polyline
-                        fill="none"
-                        stroke="#6366f1"
-                        strokeWidth="2"
-                        points={aqi24h.map((v, i) => `${i * 5},${40 - ((v || 0) - 70) / 2}`).join(" ")}
-                      />
-                    </svg>
-                </CardContent>
-              </Card>
-                {/* Heat Risk Level (simple logic for now) */}
-                <Card className="text-center shadow-card">
-                  <CardContent className="p-6 flex flex-col items-center justify-center">
-                    <AlertTriangle className="h-8 w-8 mb-2 text-red-500" />
-                    <div className={`text-lg font-bold ${getRiskColor(weather.temp > 35 ? "High" : weather.temp > 28 ? "Moderate" : "Low") } text-white rounded px-3 py-1`}>
-                      {weather.temp > 35 ? "High Risk - Avoid Outdoor Activity" : weather.temp > 28 ? "Moderate Risk - Take Precautions" : "Low Risk"}
+                    <div className="text-xs text-muted-foreground mt-1">Air Quality Index</div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      {weather.aqi <= 50 ? "Good" : weather.aqi <= 100 ? "Moderate" : weather.aqi <= 150 ? "Unhealthy" : weather.aqi <= 200 ? "Very Unhealthy" : "Hazardous"}
                     </div>
-                    {/* Add description and tip */}
-                    {weather.temp > 35 ? (
-                      <>
-                        <div className="mt-2 text-sm text-red-600 flex items-center gap-2"><Sun className="h-5 w-5 inline text-orange-400" /> Extreme heat detected.</div>
-                        <div className="mt-1 text-xs bg-red-100 text-red-700 rounded px-2 py-1">Tip: Avoid outdoor activity, seek shade, and stay hydrated.</div>
-                      </>
-                    ) : weather.temp > 28 ? (
-                      <>
-                        <div className="mt-2 text-sm text-yellow-600 flex items-center gap-2"><Sun className="h-5 w-5 inline text-yellow-400" /> Moderate heat risk.</div>
-                        <div className="mt-1 text-xs bg-yellow-100 text-yellow-800 rounded px-2 py-1">Tip: Take breaks, drink water, and avoid peak sun hours.</div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="mt-2 text-sm text-green-600 flex items-center gap-2"><Sun className="h-5 w-5 inline text-green-400" /> Safe conditions.</div>
-                        <div className="mt-1 text-xs bg-green-100 text-green-800 rounded px-2 py-1">Tip: Normal outdoor activity is safe.</div>
-                      </>
-                    )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+                  </CardContent>
+                </Card>
 
-          {/* 7-Day Forecast Section */}
-          <section className="py-8">
-        <div className="container mx-auto px-4">
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    7-Day Forecast
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                  {forecastLoading ? (
-                    <div className="text-muted-foreground">Loading forecast...</div>
-                  ) : forecastError ? (
-                    <div className="text-red-500">{forecastError}</div>
-                  ) : forecast.length > 0 ? (
-                    <div>
-                      {/* Simple SVG line chart for temp/humidity */}
-                      <div className="flex flex-col md:flex-row gap-8">
-                        {/* Temperature Forecast */}
-                      <div className="flex-1">
-                          <div className="font-semibold mb-2">Temperature (°C)</div>
-                          <svg width="100%" height="60" viewBox="0 0 140 60">
-                            <polyline
-                              fill="none"
-                              stroke="#f59e42"
-                              strokeWidth="3"
-                              points={forecast.map((d, i) => `${i * 20},${60 - (d.temp - 20) * 3}`).join(" ")}
-                            />
-                          </svg>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            {forecast.map((d, i) => <span key={i}>{new Date(d.date).toLocaleDateString("en-US", { weekday: "short" })}</span>)}
+                {/* Heat Risk Level Card */}
+                <Card className="text-center shadow-card">
+                  <CardContent className="p-6 flex flex-col items-center">
+                    <AlertTriangle className="h-10 w-10 text-red-400 mb-2" />
+                    <div className={`text-2xl font-bold ${getRiskColor(weather.risk?.level || 'safe')} text-white rounded px-3 py-1 mb-2`}>
+                      {getRiskLabel(weather.risk?.level || 'safe')}
+                    </div>
+                    <div className="text-xs text-muted-foreground mb-2">Heat Risk Level</div>
+                    <div className="text-sm text-muted-foreground text-center">
+                      {weather.risk?.description || "Risk assessment unavailable"}
+                    </div>
+                    {weather.risk?.recommendations && (
+                      <div className="mt-3 text-xs text-muted-foreground">
+                        <div className="font-semibold mb-1">Recommendations:</div>
+                        <ul className="text-left space-y-1">
+                          {weather.risk.recommendations.slice(0, 2).map((rec: string, idx: number) => (
+                            <li key={idx} className="flex items-start gap-1">
+                              <span className="text-primary">•</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+
+          {/* Enhanced Analytics Section */}
+          {analytics && (
+            <section className="py-8 bg-muted/30">
+              <div className="container mx-auto px-4">
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  <BarChart3 className="h-6 w-6 text-primary" />
+                  Enhanced Analytics
+                </h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Temperature Trends */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Thermometer className="h-5 w-5" />
+                        Temperature Trends
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Average:</span>
+                          <span className="font-semibold">{analytics.trends.temp.average.toFixed(1)}°C</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Max:</span>
+                          <span className="font-semibold text-red-600">{analytics.trends.temp.max.toFixed(1)}°C</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Min:</span>
+                          <span className="font-semibold text-blue-600">{analytics.trends.temp.min.toFixed(1)}°C</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Trend:</span>
+                          <span className={`font-semibold flex items-center gap-1 ${analytics.trends.temp.trend > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                            <TrendingUp className={`h-4 w-4 ${analytics.trends.temp.trend > 0 ? 'rotate-0' : 'rotate-180'}`} />
+                            {Math.abs(analytics.trends.temp.trend).toFixed(1)}°C
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Humidity Trends */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Droplets className="h-5 w-5" />
+                        Humidity Trends
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Average:</span>
+                          <span className="font-semibold">{analytics.trends.humidity.average.toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Max:</span>
+                          <span className="font-semibold text-blue-600">{analytics.trends.humidity.max.toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Min:</span>
+                          <span className="font-semibold text-orange-600">{analytics.trends.humidity.min.toFixed(1)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Trend:</span>
+                          <span className={`font-semibold flex items-center gap-1 ${analytics.trends.humidity.trend > 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                            <TrendingUp className={`h-4 w-4 ${analytics.trends.humidity.trend > 0 ? 'rotate-0' : 'rotate-180'}`} />
+                            {Math.abs(analytics.trends.humidity.trend).toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Alerts Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5" />
+                        Alerts Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Current Risk:</span>
+                          <span className={`font-semibold ${getRiskColor(analytics.alerts.currentHeatRisk)} text-white rounded px-2 py-1 text-xs`}>
+                            {getRiskLabel(analytics.alerts.currentHeatRisk)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">UV Level:</span>
+                          <span className="font-semibold text-yellow-600">{analytics.alerts.currentUVLevel}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Air Quality:</span>
+                          <span className="font-semibold text-green-600">{analytics.alerts.currentAQILevel}</span>
+                        </div>
+                        <div className="pt-2 border-t">
+                          <div className="text-xs text-muted-foreground mb-2">Historical (7 days):</div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Heat Waves:</span>
+                            <span className="font-semibold text-red-600">{analytics.alerts.heatWaves} days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">High UV:</span>
+                            <span className="font-semibold text-yellow-600">{analytics.alerts.highUV} days</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm text-muted-foreground">Poor AQI:</span>
+                            <span className="font-semibold text-purple-600">{analytics.alerts.poorAQI} days</span>
                           </div>
                         </div>
-                        {/* Humidity Forecast */}
-                        <div className="flex-1">
-                          <div className="font-semibold mb-2">Humidity (%)</div>
-                          <svg width="100%" height="60" viewBox="0 0 140 60">
-                            <polyline
-                              fill="none"
-                              stroke="#38bdf8"
-                              strokeWidth="3"
-                              points={forecast.map((d, i) => `${i * 20},${60 - (d.humidity - 40) * 1.2}`).join(" ")}
-                            />
-                          </svg>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            {forecast.map((d, i) => <span key={i}>{new Date(d.date).toLocaleDateString("en-US", { weekday: "short" })}</span>)}
                       </div>
-                        </div>
-                      </div>
-                      {/* Forecast Table */}
-                      <div className="overflow-x-auto mt-6">
-                        <table className="min-w-full text-xs text-left">
-                          <thead>
-                            <tr className="border-b">
-                              <th className="px-2 py-1">Day</th>
-                              <th className="px-2 py-1">Temp (°C)</th>
-                              <th className="px-2 py-1">Humidity (%)</th>
-                              <th className="px-2 py-1">UV</th>
-                              <th className="px-2 py-1">AQI</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {forecast.map((d, i) => (
-                              <tr key={i} className="border-b">
-                                <td className="px-2 py-1">{new Date(d.date).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}</td>
-                                <td className="px-2 py-1">{d.temp}</td>
-                                <td className="px-2 py-1">{d.humidity}</td>
-                                <td className="px-2 py-1">{d.uv ?? '-'}</td>
-                                <td className="px-2 py-1">{d.aqi ?? '-'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground">No forecast data available.</div>
-                  )}
-              </CardContent>
-            </Card>
-        </div>
-      </section>
-
-          {/* Historical Trend Graphs */}
-      <section className="py-8">
-        <div className="container mx-auto px-4">
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Historical Trends (7 Days)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                  <div className="flex flex-col md:flex-row gap-8">
-                    {/* Temperature Trend */}
-                    <div className="flex-1">
-                      <div className="font-semibold mb-2">Temperature (°C)</div>
-                      <svg width="100%" height="60" viewBox="0 0 140 60">
-                        <polyline
-                          fill="none"
-                          stroke="#f59e42"
-                          strokeWidth="3"
-                          points={trendTemp.map((v, i) => `${i * 20},${60 - (v - 30) * 8}`).join(" ")}
-                        />
-                      </svg>
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        {trendDays.map((d, i) => <span key={i}>{d}</span>)}
-                      </div>
-                    </div>
-                    {/* Humidity Trend */}
-                      <div className="flex-1">
-                      <div className="font-semibold mb-2">Humidity (%)</div>
-                      <svg width="100%" height="60" viewBox="0 0 140 60">
-                        <polyline
-                          fill="none"
-                          stroke="#38bdf8"
-                          strokeWidth="3"
-                          points={trendHumidity.map((v, i) => `${i * 20},${60 - (v - 65) * 6}`).join(" ")}
-                        />
-                      </svg>
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                        {trendDays.map((d, i) => <span key={i}>{d}</span>)}
-                      </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-        </div>
-      </section>
+              </div>
+            </section>
+          )}
+
+          {/* 7-Day Forecast */}
+          <section className="py-8">
+            <div className="container mx-auto px-4">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Calendar className="h-6 w-6 text-primary" />
+                7-Day Forecast
+              </h2>
+              {forecastLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading forecast...</div>
+              ) : forecastError ? (
+                <div className="text-center py-8 text-red-500">{forecastError}</div>
+              ) : (
+                <div className="grid md:grid-cols-7 gap-4">
+                  {forecast.map((day, index) => (
+                    <Card key={index} className="text-center">
+                      <CardContent className="p-4">
+                        <div className="text-sm font-semibold mb-2">
+                          {new Date(day.date).toLocaleDateString("en-US", { weekday: "short" })}
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-3">
+                          {new Date(day.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </div>
+                        <div className="text-2xl font-bold text-orange-600 mb-1">{day.temp}°C</div>
+                        <div className="text-xs text-muted-foreground mb-2">
+                          {day.temp_min}°C - {day.temp_max}°C
+                        </div>
+                        <div className="text-sm text-blue-500 mb-2">{day.humidity}%</div>
+                        <div className={`text-xs font-semibold ${getRiskColor(day.risk?.level || 'safe')} text-white rounded px-2 py-1 mb-2`}>
+                          {getRiskLabel(day.risk?.level || 'safe')}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          UV: {day.uv?.toFixed(1) || '-'}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Historical Trends */}
+          <section className="py-8 bg-muted/30">
+            <div className="container mx-auto px-4">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                <Activity className="h-6 w-6 text-primary" />
+                Historical Trends
+              </h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Temperature Trend Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Temperature Trend (7 Days)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {trendTemp.length > 0 ? (
+                      <div className="h-48 flex items-end justify-between gap-1">
+                        {trendTemp.map((temp, index) => (
+                          <div key={index} className="flex flex-col items-center flex-1">
+                            <div
+                              className="w-full bg-orange-500 rounded-t"
+                              style={{ height: `${(temp / Math.max(...trendTemp)) * 100}%` }}
+                            />
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {trendDays[index] || index + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="h-48 flex items-center justify-center text-muted-foreground">
+                        No historical data available
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Humidity Trend Chart */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Humidity Trend (7 Days)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {trendHumidity.length > 0 ? (
+                      <div className="h-48 flex items-end justify-between gap-1">
+                        {trendHumidity.map((humidity, index) => (
+                          <div key={index} className="flex flex-col items-center flex-1">
+                            <div
+                              className="w-full bg-blue-500 rounded-t"
+                              style={{ height: `${humidity}%` }}
+                            />
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {trendDays[index] || index + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="h-48 flex items-center justify-center text-muted-foreground">
+                        No historical data available
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
         </>
       ) : null}
     </div>

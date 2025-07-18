@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, Route, User, BarChart3, Menu } from "lucide-react";
+import { Home, Route, User, BarChart3, Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const Navigation = () => {
@@ -19,9 +19,9 @@ const Navigation = () => {
   return (
     <>
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-card">
+      <nav className="md:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b shadow-card mobile-safe-area">
         <div className="flex items-center justify-between p-4">
-          <Link to="/" className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2 mobile-touch-friendly">
             <div className="w-8 h-8 bg-gradient-heat rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">H</span>
             </div>
@@ -31,23 +31,25 @@ const Navigation = () => {
             variant="ghost"
             size="icon"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="mobile-touch-friendly"
           >
-            <Menu className="h-5 w-5" />
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
         
         {isMenuOpen && (
-          <div className="bg-background border-t p-4 animate-slide-up">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="bg-background border-t p-4 animate-slide-up mobile-scroll-smooth">
+            <div className="grid grid-cols-2 gap-3">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsMenuOpen(false)}
+                  className="mobile-touch-friendly"
                 >
                   <Button
                     variant={isActive(item.path) ? "heat" : "ghost"}
-                    className="w-full justify-start gap-2"
+                    className="w-full justify-start gap-2 h-12 mobile-touch-friendly"
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}
